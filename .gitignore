@@ -1,0 +1,45 @@
+# Prerequisites / Compiled Binaries
+*.o
+*.obj
+*.out
+a.out
+caesar
+ceaser
+ceaser_cli
+main
+
+# Debug symbols
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Build & output directories
+build/
+bin/
+out/
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+
+# Editor & IDE artifacts
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.bak
+
+# Temporary and log files
+*.log
+*.tmp
