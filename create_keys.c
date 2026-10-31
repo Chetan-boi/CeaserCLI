@@ -13,8 +13,8 @@ int main(int argc, char *argv[]) {
     srand(time(NULL));
 
     for (int i = 0; i < key_len; i++) {
-        pub_shifts[i] = (rand() % 25) + 1;          // 1 to 25
-        priv_shifts[i] = (26 - pub_shifts[i]) % 26; // inverse
+        pub_shifts[i] = (rand() % 25) + 1;         
+        priv_shifts[i] = (26 - pub_shifts[i]) % 26; 
     }
 
     FILE *pub = fopen(pub_name, "wb");

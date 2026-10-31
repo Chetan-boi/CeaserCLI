@@ -6,23 +6,19 @@
 #define MAX_KEY_SIZE 256
 #define MAX_FILENAME 200
 
-// ==================== STRUCTURE ====================
-// Groups all related data together
 typedef struct {
     char inputFile[MAX_FILENAME];
     char keyFile[MAX_FILENAME];
     char outputFile[MAX_FILENAME];
-    unsigned char shifts[MAX_KEY_SIZE];  // Array to store key
+    unsigned char shifts[MAX_KEY_SIZE];  
     size_t keyLength;
-    int isDecrypt;                       // 0 = encrypt, 1 = decrypt
+    int isDecrypt;                       
 } CipherConfig;
 
-// ==================== FUNCTION DECLARATIONS ====================
-int loadKey(CipherConfig *config);                    // uses pointer to structure
-void processFile(CipherConfig *config);               // uses pointer to structure
-void caesarShift(char *ch, int shift);                // uses pointer to character
+int loadKey(CipherConfig *config);                   
+void processFile(CipherConfig *config);               
+void caesarShift(char *ch, int shift);               
 
-// ==================== MAIN ====================
 int main(int argc, char *argv[]) {
 
     if (argc != 4) {
@@ -32,22 +28,18 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Create structure variable
     CipherConfig config;
 
-    // Fill structure
     strcpy(config.inputFile, argv[2]);
     strcpy(config.keyFile, argv[3]);
     config.isDecrypt = (strcmp(argv[1], "decrypt") == 0) ? 1 : 0;
 
-    // Create output filename
     if (config.isDecrypt) {
         snprintf(config.outputFile, MAX_FILENAME, "%sRestored.csv", config.inputFile);
     } else {
         snprintf(config.outputFile, MAX_FILENAME, "%sEncrypted.csv", config.inputFile);
     }
 
-    // Load the key into the structure (using pointer)
     if (loadKey(&config) != 0) {
         printf("Error loading key file!\n");
         return 1;
@@ -55,7 +47,6 @@ int main(int argc, char *argv[]) {
 
     printf("Key loaded successfully (%zu bytes).\n", config.keyLength);
 
-    // Process the file (using pointer to structure)
     processFile(&config);
 
     printf("%s '%s' -> '%s' using '%s'.\n",
@@ -65,8 +56,6 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-// ==================== LOAD KEY ====================
-// Demonstrates: Pointer to structure + Array
 int loadKey(CipherConfig *config) {
     FILE *fp = fopen(config->keyFile, "rb");
     if (fp == NULL) return -1;
@@ -77,8 +66,6 @@ int loadKey(CipherConfig *config) {
     return (config->keyLength > 0) ? 0 : -1;
 }
 
-// ==================== PROCESS FILE ====================
-// Demonstrates: Pointer to structure + File handling
 void processFile(CipherConfig *config) {
     FILE *in = fopen(config->inputFile, "r");
     if (in == NULL) {
@@ -98,10 +85,8 @@ void processFile(CipherConfig *config) {
 
     while ((ch = fgetc(in)) != EOF) {
         if (isalpha(ch)) {
-            // Get the correct shift from the array using pointer arithmetic concept
             int shift = config->shifts[alpha_count % config->keyLength];
 
-            // Pass address of character (pointer)
             char temp = (char)ch;
             caesarShift(&temp, shift);
             ch = temp;
@@ -115,8 +100,6 @@ void processFile(CipherConfig *config) {
     fclose(out);
 }
 
-// ==================== CAESAR SHIFT ====================
-// Demonstrates: Pointer
 void caesarShift(char *ch, int shift) {
     if (isalpha(*ch)) {
         char base = islower(*ch) ? 'a' : 'A';
