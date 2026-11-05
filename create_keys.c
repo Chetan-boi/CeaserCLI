@@ -1,39 +1,54 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
+#define MAX_PATH 256
+#define KLEN 8
+
+static void show_help(const char *prog) {
+    printf("usage: %s [NAME]\n", prog);
+    printf("  %s Chetan -> PublicChetan.key & PrivateChetan.key\n", prog);
+    printf("  %s        -> Public.key & Private.key\n", prog);
+}
+
 int main(int argc, char *argv[]) {
-    const char *pub_name = (argc > 1) ? argv[1] : "Public.key";
-    const char *priv_name = (argc > 2) ? argv[2] : "Private.key";
-    int key_len = 8;
-
-    unsigned char pub_shifts[key_len];
-    unsigned char priv_shifts[key_len];
-
-    srand(time(NULL));
-
-    for (int i = 0; i < key_len; i++) {
-        pub_shifts[i] = (rand() % 25) + 1;          
-        priv_shifts[i] = (26 - pub_shifts[i]) % 26; 
+    if (argc > 1 && (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help") || !strcmp(argv[1], "help"))) {
+        show_help(argv[0]);
+        return 0;
     }
 
-    FILE *pub = fopen(pub_name, "wb");
-    FILE *priv = fopen(priv_name, "wb");
+    const char *name = (argc > 1) ? argv[1] : NULL;
+    char pub[MAX_PATH], priv[MAX_PATH];
 
-    if (!pub || !priv) {
-        printf("Error creating key files\n");
+    if (name && strlen(name)) {
+        snprintf(pub, sizeof(pub), "Public%s.key", name);
+        snprintf(priv, sizeof(priv), "Private%s.key", name);
+    } else {
+        snprintf(pub, sizeof(pub), "Public.key");
+        snprintf(priv, sizeof(priv), "Private.key");
+    }
+
+    unsigned char pub_s[KLEN], priv_s[KLEN];
+    srand((unsigned int)time(NULL));
+
+    for (int i = 0; i < KLEN; i++) {
+        pub_s[i] = (rand() % 25) + 1;
+        priv_s[i] = (26 - pub_s[i]) % 26;
+    }
+
+    FILE *f1 = fopen(pub, "wb");
+    FILE *f2 = fopen(priv, "wb");
+    if (!f1 || !f2) {
+        printf("cant create keys\n");
         return 1;
     }
 
-    fwrite(pub_shifts, 1, key_len, pub);
-    fwrite(priv_shifts, 1, key_len, priv);
+    fwrite(pub_s, 1, KLEN, f1);
+    fwrite(priv_s, 1, KLEN, f2);
+    fclose(f1);
+    fclose(f2);
 
-    fclose(pub);
-    fclose(priv);
-
-    printf("Created key pair:\n");
-    printf("  Public  : %s\n", pub_name);
-    printf("  Private : %s\n", priv_name);
-
+    printf("created:\n  %s\n  %s\n", pub, priv);
     return 0;
 }
