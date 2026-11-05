@@ -1,90 +1,109 @@
-#include "cipher.h"
-
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
 
-int read_shift_key(const char* key_path, int* shift) {
-    if (key_path == NULL || shift == NULL) {
-        printf("Error: Invalid key path or pointer.\n");
+#define MAX_KEY_SIZE 256
+#define MAX_FILENAME 200
+
+typedef struct {
+    char inputFile[MAX_FILENAME];
+    char keyFile[MAX_FILENAME];
+    char outputFile[MAX_FILENAME];
+    unsigned char shifts[MAX_KEY_SIZE];  
+    size_t keyLength;
+    int isDecrypt;                      
+} CipherConfig;
+
+int loadKey(CipherConfig *config);                  
+void processFile(CipherConfig *config);            
+void caesarShift(char *ch, int shift);                
+
+int main(int argc, char *argv[]) {
+
+    if (argc != 4) {
+        printf("Usage:\n");
+        printf("  Encrypt : %s encrypt  <input.csv> <Public.key>\n", argv[0]);
+        printf("  Decrypt : %s decrypt  <encrypted.csv> <Private.key>\n", argv[0]);
         return 1;
     }
 
-    FILE* fp = fopen(key_path, "r");
-    if (fp == NULL) {
-        printf("Error opening key file: %s\n", key_path);
+    CipherConfig config;
+
+    strcpy(config.inputFile, argv[2]);
+    strcpy(config.keyFile, argv[3]);
+    config.isDecrypt = (strcmp(argv[1], "decrypt") == 0) ? 1 : 0;
+
+    if (config.isDecrypt) {
+        snprintf(config.outputFile, MAX_FILENAME, "%sRestored.csv", config.inputFile);
+    } else {
+        snprintf(config.outputFile, MAX_FILENAME, "%sEncrypted.csv", config.inputFile);
+    }
+
+    if (loadKey(&config) != 0) {
+        printf("Error loading key file!\n");
         return 1;
     }
 
-    if (fscanf(fp, "%d", shift) != 1) {
-        printf("Error: Could not read integer shift from: %s\n", key_path);
-        fclose(fp);
-        return 1;
-    }
+    printf("Key loaded successfully (%zu bytes).\n", config.keyLength);
 
+    processFile(&config);
+
+    printf("%s '%s' -> '%s' using '%s'.\n",
+           config.isDecrypt ? "Decrypted" : "Encrypted",
+           config.inputFile, config.outputFile, config.keyFile);
+
+    return 0;
+}
+
+int loadKey(CipherConfig *config) {
+    FILE *fp = fopen(config->keyFile, "rb");
+    if (fp == NULL) return -1;
+
+    config->keyLength = fread(config->shifts, 1, MAX_KEY_SIZE, fp);
     fclose(fp);
 
-    /* Normalize shift to range 0..25 */
-    *shift = *shift % 26;
-    if (*shift < 0) {
-        *shift += 26;
-    }
-
-    return 0;
+    return (config->keyLength > 0) ? 0 : -1;
 }
 
-char shift_char(char c, int shift, int is_decrypt) {
-    if (isupper((unsigned char)c)) {
-        if (!is_decrypt) {
-            return (char)((c - 'A' + shift) % 26 + 'A');
-        } else {
-            return (char)((c - 'A' - shift + 26) % 26 + 'A');
-        }
-    } else if (islower((unsigned char)c)) {
-        if (!is_decrypt) {
-            return (char)((c - 'a' + shift) % 26 + 'a');
-        } else {
-            return (char)((c - 'a' - shift + 26) % 26 + 'a');
-        }
+void processFile(CipherConfig *config) {
+    FILE *in = fopen(config->inputFile, "r");
+    if (in == NULL) {
+        printf("Cannot open input file: %s\n", config->inputFile);
+        exit(1);
     }
-    /* Digits, spaces, punctuation and newlines remain unchanged */
-    return c;
+
+    FILE *out = fopen(config->outputFile, "w");
+    if (out == NULL) {
+        printf("Cannot create output file\n");
+        fclose(in);
+        exit(1);
+    }
+
+    int alpha_count = 0;
+    int ch;
+
+    while ((ch = fgetc(in)) != EOF) {
+        if (isalpha(ch)) {
+  
+            int shift = config->shifts[alpha_count % config->keyLength];
+
+            char temp = (char)ch;
+            caesarShift(&temp, shift);
+            ch = temp;
+
+            alpha_count++;
+        }
+        fputc(ch, out);
+    }
+
+    fclose(in);
+    fclose(out);
 }
 
-int process_file(const char* input_path, const char* key_path, const char* output_path, int is_decrypt) {
-    int shift = 0;
-    if (read_shift_key(key_path, &shift) != 0) {
-        return 1;
+void caesarShift(char *ch, int shift) {
+    if (isalpha(*ch)) {
+        char base = islower(*ch) ? 'a' : 'A';
+        *ch = ((*ch - base + shift) % 26 + 26) % 26 + base;
     }
-
-    FILE* fin = fopen(input_path, "r");
-    if (fin == NULL) {
-        printf("Error opening input file: %s\n", input_path);
-        return 1;
-    }
-
-    FILE* fout = stdout;
-    if (output_path != NULL && output_path[0] != '\0') {
-        fout = fopen(output_path, "w");
-        if (fout == NULL) {
-            printf("Error opening output file: %s\n", output_path);
-            fclose(fin);
-            return 1;
-        }
-    }
-
-    char buffer[BUFFER_SIZE];
-    while (fgets(buffer, sizeof(buffer), fin) != NULL) {
-        for (int i = 0; buffer[i] != '\0'; i++) {
-            buffer[i] = shift_char(buffer[i], shift, is_decrypt);
-        }
-        fputs(buffer, fout);
-    }
-
-    fclose(fin);
-    if (fout != stdout) {
-        fclose(fout);
-    }
-
-    return 0;
 }
