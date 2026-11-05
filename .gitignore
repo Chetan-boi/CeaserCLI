@@ -2,11 +2,22 @@
 *.o
 *.obj
 *.out
+*.exe
 a.out
 caesar
 ceaser
 ceaser_cli
+ceaserCLI
+cipher
+create_keys
 main
+
+# Generated encryption/decryption files & keys
+*Encrypted*
+*Restored*
+Public*.key
+Private*.key
+*.key
 
 # Debug symbols
 *.dSYM/
@@ -18,6 +29,9 @@ main
 build/
 bin/
 out/
+
+# Build script
+build.sh
 
 # macOS system files
 .DS_Store

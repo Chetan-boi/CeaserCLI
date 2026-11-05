@@ -1,10 +1,10 @@
-# Text Encryption & Decryption Tool
+# CeaserCLI : Text Encryption and Decryption Tool
 
-**Course:** Software Development Fundamentals – 1
+**Course:** Software Development Fundamentals – 1  
+**Batch:** F21  
+**Instructor:** Dr. Shariq Murtuza  
 
-**Batch:** F21
-
-**Instructor:** Dr. Shariq Murtuza
+---
 
 ## Team
 
@@ -17,107 +17,215 @@
 
 ---
 
-## I. Introduction
+## Table of Contents
+1. [Introduction](#1-introduction)  
+2. [Problem Statement](#2-problem-statement)  
+3. [Objectives](#3-objectives)  
+4. [Proposed Methodology](#4-proposed-methodology)  
+5. [System and Functional Requirements](#5-system-and-functional-requirements)  
+6. [Design and Implementation](#6-design-and-implementation)  
+7. [Usage and Compilation](#7-usage-and-compilation)  
+8. [Screenshots](#8-screenshots)  
+9. [Limitations and Future Scope](#9-limitations-and-future-scope)  
+10. [Conclusion](#10-conclusion)  
+11. [References](#11-references)  
 
-The proposed project implements a Text Encryption and Decryption Tool developed in C. It will use the Caesar Cipher encryption algorithm. The tool will read text from a user-specified file and use a key stored in a separate key file to perform encryption or decryption.
+---
 
-## II. Problem Statement
+## 1. Introduction
+This project implements a file-based encryption and decryption tool developed in C. It uses a multi-shift Caesar cipher approach to transform the contents of a text/csv file using a public key and restore the original content using a corresponding private key.
 
-Plain text stored in files is directly readable by anyone who can access it. The project aims to develop a simple program that processes a text file using a key provided through a separate key file. The file and key file will be supplied to the program through command-line arguments.
+The project provides both a command-line interface (CLI) for scripted execution and an interactive, menu-driven CLI (`ceaserCLI`) for interactive use.
 
-## III. Objectives
+---
 
-- To implement the Caesar Cipher in C for encryption and decryption of text stored in a file.
-- To accept command-line arguments for user interaction.
+## 2. Problem Statement
+Plain text stored in files can be easily read by anyone who has access to the storage system. This project aims to provide a reliable, modular educational tool to encrypt the contents of a file and decrypt it back to its original form using a generated key pair.
 
-## IV. Proposed Methodology
+---
 
-The program will receive two command-line arguments: the path of the text file and the path of the key file. For example, the program may be invoked as:
+## 3. Objectives
+- Implement file-based Caesar Cipher encryption and decryption of text files in C.
+- Demonstrate fundamental C programming concepts: structures, arrays, pointers, functions, and file I/O.
+- Support both command-line arguments with `--help` flags and an interactive menu-driven interface.
+- Provide key-pair generation with optional custom naming prefixes (`Public<Name>.key` / `Private<Name>.key`).
+- Structure the project cleanly into `src/` and `include/` directories without relying on a Makefile.
 
+---
+
+## 4. Proposed Methodology
+The program supports both direct command-line arguments and an interactive terminal menu:
+
+In CLI mode, the tool is invoked as:
 ```bash
-./a.out file.txt main.key
+./cipher <encrypt|decrypt> <input file> <key file>
 ```
 
-The key file will contain the key/shift value used by the Caesar Cipher.
-
-The program will open the input text file, read its contents into a character buffer, and obtain the key from the key file. During processing, the program will traverse the character data and shift alphabetic characters. Encryption will shift characters forward, whereas decryption will apply the reverse shift.
-
-Example with shift = 3:
-
-```
-HELLO -> KHOOR
-KHOOR -> HELLO
+Key pairs are generated via:
+```bash
+./create_keys [NAME]
 ```
 
-### C Concepts Used
+Interactive menu mode is launched via:
+```bash
+./ceaserCLI
+```
 
-| Concept | Use in the Project / Application |
-| :--- | :--- |
-| Arrays | Character arrays/buffers store text read from the input file so the program can process the data one character at a time. |
-| Structures | A structure groups encryption-related settings such as the key and processing information into one logical unit. |
-| Pointers | Pointers are used to access/pass character buffers and work with file data, demonstrating direct memory-based data access. |
-| Control Flow | if/else statements, loops and argument checks control file processing, character transformation, wrap-around and program execution. |
-| Functions | Separate user-defined functions can handle file operations, key reading, encryption/decryption and validation, keeping the program modular. |
-| File Handling | File handling is a core part of the project: the program reads the input text from a file and obtains the encryption/decryption key from a separate key file. |
+The algorithm reads the text file character by character. For each alphabetic character, it applies a modular Caesar shift from the key file with wrap-around, preserving character case (uppercase and lowercase). Non-alphabetic characters (spaces, punctuation, digits) remain unmodified.
 
-## VI. System and Functional Requirements
+```
+Example (Shift = 3):
+HELLO -> KHOOR  |  KHOOR -> HELLO
+```
 
-- The program shall accept the input text file path as a command-line argument.
-- The program shall accept the key file path as a command-line argument.
-- The program shall provide encryption and decryption operations using the supplied key.
-- The program shall read and process the contents of the input file.
-- The program shall handle invalid arguments and file-access errors appropriately; the implementation shall use arrays, structures, pointers and file handling.
+---
 
-## VII. Design / Control Flow
+## 5. System and Functional Requirements
 
-The planned control flow begins by validating the two command-line arguments, opening the input text file and key file, reading the key, processing the text using the Caesar Cipher, and completing the selected encryption/decryption operation. The flow also includes validation and file-error handling.
+### Functional Requirements
+- **Command-Line Arguments & Flags:** Support `encrypt`, `decrypt`, and `--help` / `-h` flags for comprehensive usage instructions.
+- **Menu-Driven Interface:** Provide an interactive menu driver (`ceaserCLI`) allowing users to encrypt files, decrypt files, or read help instructions without memorizing command-line syntax.
+- **Key Generation:** Standalone key generator (`create_keys`) to generate 8-byte multi-shift binary key pairs with optional user naming (`Public<Name>.key` and `Private<Name>.key`).
+- **File Encryption:** Encrypt text using the generated public key, outputting to `<name>_encrypted.<ext>`.
+- **File Decryption:** Restore encrypted text using the matching private key, outputting to `<name>_decrypted.<ext>`.
+- **Robust Error Handling:** Validate command-line arguments, verify file existence, handle missing or malformed keys, and report user-friendly error messages.
+
+### Public Key and Private Key
+- **Public Key (`Public<Name>.key`):** A binary file containing a sequence of shift values $S_i$ ($1 \le S_i \le 25$). Used during encryption:
+  $$C = (P - \text{base} + S_i) \pmod{26} + \text{base}$$
+- **Private Key (`Private<Name>.key`):** A binary file containing the inverse shift values $S'_i = (26 - S_i) \pmod{26}$. Used during decryption:
+  $$P = (C - \text{base} + S'_i) \pmod{26} + \text{base}$$
+
+Data encrypted using the public key can only be correctly restored using the matching private key.
+
+---
+
+## 6. Design and Implementation
+
+### 6.1 C Programming Concepts Demonstrated
+- **Header Files and Modularity:** Common definitions and function prototypes are declared in [`include/cipher.h`](include/cipher.h).
+- **Structures:** Group related configuration data such as file paths, key buffers, key lengths, and operation mode into `CipherConfig`.
+- **Arrays:** Store multi-shift sequences read from binary key files.
+- **Pointers:** Pass configuration structures and memory buffers to functions efficiently by reference.
+- **File Handling:** Binary file operations (`fread`, `fwrite`, `fopen`, `fclose`) for key management and stream I/O (`fgetc`, `fputc`) for text transformation.
+
+### 6.2 Control Flow Diagram
 
 ```mermaid
 flowchart TD
-    A([Start]) --> B[Read command-line arguments<br>file.txt + main.key]
-    B --> C[Open text file and key file<br>Validate file access]
-    C --> D[Read key / shift value<br>Read text into character buffer]
-    D --> E[Encrypt / Decrypt text<br>Apply Caesar shift with wrap-around]
+    Start([Start]) --> Mode{Select Mode}
+    Mode -->|Interactive Menu| Menu[Launch ceaserCLI Menu]
+    Mode -->|CLI Arguments| ParseArgs[Parse CLI Arguments & Flags]
+    
+    ParseArgs -->|--help / -h| ShowHelp[Display Help Screen] --> Exit([Exit])
+    ParseArgs -->|create_keys [NAME]| GenKey[Generate 8-byte Shifts]
+    GenKey --> WriteKeys[Save Public&lt;Name&gt;.key & Private&lt;Name&gt;.key] --> Exit
+    
+    ParseArgs -->|cipher &lt;encrypt/decrypt&gt;| LoadFiles[Open Input & Key File]
+    LoadFiles --> Validate{Valid Files?}
+    Validate -->|No| FileErr[Display Error Message] --> Exit
+    Validate -->|Yes| ReadKey[Read Key Shifts into Buffer]
+    
+    ReadKey --> OpType{Operation?}
+    OpType -->|encrypt| ApplyShift[Shift chars: +shift mod 26]
+    OpType -->|decrypt| ApplyInverse[Shift chars: +inverse mod 26]
+    
+    ApplyShift --> WriteOut[Write &lt;name&gt;_encrypted.&lt;ext&gt;] --> Done([Done])
+    ApplyInverse --> WriteOutRestored[Write &lt;name&gt;_decrypted.&lt;ext&gt;] --> Done
 ```
 
-## VIII. Expected Outcomes
+---
 
-The completed project is expected to provide a working console-based application that reads text from a file and uses a separately supplied key file to perform Caesar Cipher encryption and decryption. It will demonstrate practical use of character arrays, structures, pointers, functions, file handling, loops and conditional statements while implementing a simple text transformation algorithm.
+## 7. Usage and Compilation
 
-The project will also provide a clear understanding of the relationship between an algorithm, command-line arguments, files, key management, data representation and program control flow in a C application.
+The project does not use or require any Makefile. Compile the unified tool using the build script:
 
-## IX. Limitations and Future Scope
+### 7.1 Compilation
+```bash
+./build.sh
+```
+Or directly with `gcc`:
+```bash
+gcc src/cipher.c src/ceaserCLI.c -Iinclude -o ceaserCLI
+```
 
-The Caesar cipher is a basic classical encryption technique and should not be considered secure for protecting sensitive or confidential information. It is not cryptographically secure.
+---
 
-The project can be extended in future by adding other encryption techniques, a graphical user interface, or stronger modern cryptographic algorithms.
+### 7.2 Standalone Key Generator (`create_keys`)
+`create_keys.c` is completely standalone in the root directory and has no external dependencies:
+```bash
+gcc create_keys.c -o create_keys
+./create_keys Chetan
+```
 
-## X. Conclusion
+---
 
-The Text Encryption and Decryption Tool provides a compact practical application of the Caesar Cipher while demonstrating fundamental C programming concepts. By combining arrays, structures, pointers, functions, file handling and control flow, the project connects core programming concepts with a simple file-based text transformation use case.
+### 7.3 Unified Interface (`ceaserCLI`)
 
-## XI. References
+The application decides what to do based on arguments:
+- **No arguments (`./ceaserCLI`)**: Launches the interactive menu (Encrypt, Decrypt, Help, Exit).
+- **Arguments (`./ceaserCLI <encrypt|decrypt> <file> <key>`)**: Runs the operation directly.
+- **Invalid arguments / `--help`**: Displays the help menu.
+
+```bash
+# 1. Interactive Menu Mode (no arguments)
+./ceaserCLI
+
+# 2. File Encryption
+./ceaserCLI encrypt input.csv PublicChetan.key
+# Output: done, encrypted is input_encrypted.csv
+
+# 3. File Decryption
+./ceaserCLI decrypt input_encrypted.csv PrivateChetan.key
+# Output: done, decrypted is input_decrypted.csv
+
+# 4. Display Help
+./ceaserCLI --help
+```
+
+---
+
+## 8. Screenshots
+
+### 8.1 Compilation
+![Compilation](screenshots/compile.png)
+
+---
+
+### 8.2 Key Pair Generation
+![Key Pair Generation](screenshots/keys.png)
+
+---
+
+### 8.3 File Encryption
+![File Encryption](screenshots/encrypt.png)
+
+---
+
+### 8.4 File Decryption & Restoration
+![File Decryption](screenshots/decrypt.png)
+
+---
+
+## 9. Limitations and Future Scope
+
+- **Security:** The Caesar cipher is an elementary classical substitution cipher and is not cryptographically secure against frequency analysis or brute-force cryptanalysis. It is intended strictly for educational purposes.
+- **File Types:** While non-alphabetic characters are preserved, binary file formats (e.g., images, compiled binaries) are not encrypted.
+- **Future Enhancements:**
+  - Support for modern symmetric and asymmetric algorithms (AES, RSA).
+  - Cross-platform graphical user interface (GUI).
+  - Support for full-byte stream encryption covering all byte values 0–255.
+
+---
+
+## 10. Conclusion
+
+The Text Encryption and Decryption Tool provides a compact practical application of the Caesar Cipher while demonstrating fundamental C programming concepts. By combining arrays, structures, pointers, functions, file handling, and modular code organization across `src/` and `include/`, the project bridges foundational programming concepts with a practical file security application.
+
+---
+
+## 11. References
 
 1. B. W. Kernighan and D. M. Ritchie, *The C Programming Language*, 2nd ed. Prentice Hall, 1988.
 2. B. Schneier, *Applied Cryptography: Protocols, Algorithms, and Source Code in C*, 2nd ed. John Wiley & Sons, 1996.
 3. Course material and laboratory notes for SDF–1, Department of Computer Science and Engineering, JIIT Noida.
-
----
-
-## Build and Run
-
-**Requirements:** GCC or Clang.
-
-**Compile**
-
-```bash
-gcc main.c cipher.c -o a.out
-```
-
-**Run**
-
-```bash
-echo "HELLO WORLD" > file.txt
-echo "3" > main.key
-./a.out file.txt main.key
-```
