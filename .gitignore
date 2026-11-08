@@ -15,8 +15,6 @@ main
 # Generated encryption/decryption files & keys
 *Encrypted*
 *Restored*
-Public*.key
-Private*.key
 *.key
 
 # Debug symbols
@@ -31,7 +29,7 @@ bin/
 out/
 
 # Build script
-build.sh
+# build.sh
 
 # macOS system files
 .DS_Store

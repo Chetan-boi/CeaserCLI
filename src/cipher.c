@@ -1,8 +1,4 @@
-#if __has_include("../include/cipher.h")
-#include "../include/cipher.h"
-#else
 #include "cipher.h"
-#endif
 
 void cshift(char *ch, int s) {
     if (isalpha((unsigned char)*ch)) {

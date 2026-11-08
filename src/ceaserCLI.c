@@ -1,8 +1,4 @@
-#if __has_include("../include/cipher.h")
-#include "../include/cipher.h"
-#else
 #include "cipher.h"
-#endif
 
 static void get_str(char *b, size_t sz) {
     if (fgets(b, (int)sz, stdin)) {
@@ -84,7 +80,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    if (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h") || !strcmp(argv[1], "help") || !strcmp(argv[1], "—help")) {
+    if (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h")) {
         show_help(argv[0]);
         return 0;
     }

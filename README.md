@@ -33,117 +33,104 @@
 ---
 
 ## 1. Introduction
-This project implements a file-based encryption and decryption tool developed in C. It uses a multi-shift Caesar cipher approach to transform the contents of a text/csv file using a public key and restore the original content using a corresponding private key.
+This project implements a file-based encryption and decryption tool developed in C. It uses the Caesar cipher approach to transform the contents of target file using a public key and restore the original content using the corresponding private key.
 
-The project provides both a command-line interface (CLI) for scripted execution and an interactive, menu-driven CLI (`ceaserCLI`) for interactive use.
+The tool provides two modes of interaction: a fast, scriptable command-line interface (CLI) for direct terminal execution, and a menu-driven console interface for interactive use.
 
 ---
 
 ## 2. Problem Statement
-Plain text stored in files can be easily read by anyone who has access to the storage system. This project aims to provide a reliable, modular educational tool to encrypt the contents of a file and decrypt it back to its original form using a generated key pair.
+Plain text files are easily readible by anyone. CeaserCLI is a tool that scrambles the file's contents so it isn’t readable at a glance, and gets the exact original back later using a matching key.
 
 ---
 
 ## 3. Objectives
-- Implement file-based Caesar Cipher encryption and decryption of text files in C.
-- Demonstrate fundamental C programming concepts: structures, arrays, pointers, functions, and file I/O.
-- Support both command-line arguments with `--help` flags and an interactive menu-driven interface.
-- Provide key-pair generation with optional custom naming prefixes (`Public<Name>.key` / `Private<Name>.key`).
-- Structure the project cleanly into `src/` and `include/` directories without relying on a Makefile.
+- Implement file-based Caesar Cipher encryption and decryption of files.
+- Design an independent key generation utility producing paired public/private shift sequences.
+- Offer dual-interface flexibility: direct CLI argument processing and an interactive console menu.
 
 ---
 
 ## 4. Proposed Methodology
-The program supports both direct command-line arguments and an interactive terminal menu:
 
-In CLI mode, the tool is invoked as:
-```bash
-./cipher <encrypt|decrypt> <input file> <key file>
-```
+### 4.1 Key Generation Mechanism
+The key generator creates two paired 8-byte binary files:
+- **Public Key (`Public<Name>.key`):** Contains random shift values $S_i \in [1, 25]$ for each character position.
+- **Private Key (`Private<Name>.key`):** Contains the modular inverse shift values:
+  $$S'_i = (26 - S_i) \pmod{26}$$
 
-Key pairs are generated via:
-```bash
-./create_keys [NAME]
-```
+Because $(S_i + S'_i) \equiv 0 \pmod{26}$, any text shifted forward by $S_i$ is fully restored by applying $S'_i$.
 
-Interactive menu mode is launched via:
-```bash
-./ceaserCLI
-```
-
-The algorithm reads the text file character by character. For each alphabetic character, it applies a modular Caesar shift from the key file with wrap-around, preserving character case (uppercase and lowercase). Non-alphabetic characters (spaces, punctuation, digits) remain unmodified.
+### 4.2 Stream Transformation Algorithm
+The cipher processes files character-by-character:
+1. **Alphabetic Characters:** Case is preserved (uppercase stays uppercase, lowercase stays lowercase), and the active shift $S_i$ is applied with circular modulo wrap-around:
+   $$\text{Encryption: } C = (P - \text{base} + S_i) \pmod{26} + \text{base}$$
+   $$\text{Decryption: } P = (C - \text{base} + S'_i) \pmod{26} + \text{base}$$
+2. **Key Cycling:** The shift index cycles across the 8-byte key buffer using $(count \pmod{8})$.
 
 ```
-Example (Shift = 3):
-HELLO -> KHOOR  |  KHOOR -> HELLO
+Example Transformation (Single Shift = 3):
+Original:   HELLO -> KHOOR
+Restored:   KHOOR -> HELLO
 ```
 
 ---
 
 ## 5. System and Functional Requirements
 
-### Functional Requirements
-- **Command-Line Arguments & Flags:** Support `encrypt`, `decrypt`, and `--help` / `-h` flags for comprehensive usage instructions.
-- **Menu-Driven Interface:** Provide an interactive menu driver (`ceaserCLI`) allowing users to encrypt files, decrypt files, or read help instructions without memorizing command-line syntax.
-- **Key Generation:** Standalone key generator (`create_keys`) to generate 8-byte multi-shift binary key pairs with optional user naming (`Public<Name>.key` and `Private<Name>.key`).
-- **File Encryption:** Encrypt text using the generated public key, outputting to `<name>_encrypted.<ext>`.
-- **File Decryption:** Restore encrypted text using the matching private key, outputting to `<name>_decrypted.<ext>`.
-- **Robust Error Handling:** Validate command-line arguments, verify file existence, handle missing or malformed keys, and report user-friendly error messages.
-
-### Public Key and Private Key
-- **Public Key (`Public<Name>.key`):** A binary file containing a sequence of shift values $S_i$ ($1 \le S_i \le 25$). Used during encryption:
-  $$C = (P - \text{base} + S_i) \pmod{26} + \text{base}$$
-- **Private Key (`Private<Name>.key`):** A binary file containing the inverse shift values $S'_i = (26 - S_i) \pmod{26}$. Used during decryption:
-  $$P = (C - \text{base} + S'_i) \pmod{26} + \text{base}$$
-
-Data encrypted using the public key can only be correctly restored using the matching private key.
+- **Command-Line & Menu Interfaces:** The unified program automatically opens the interactive menu when executed without arguments, or directly processes CLI commands (`encrypt`, `decrypt`, `--help`) when arguments are supplied.
+- **Independent Key Pair Utility:** A standalone utility (`create_keys`) generates binary key files.
+- **Input & File Validation:** Check for file existence, non-empty paths, and verify key files before attempting transformations.
 
 ---
 
 ## 6. Design and Implementation
 
 ### 6.1 C Programming Concepts Demonstrated
-- **Header Files and Modularity:** Common definitions and function prototypes are declared in [`include/cipher.h`](include/cipher.h).
-- **Structures:** Group related configuration data such as file paths, key buffers, key lengths, and operation mode into `CipherConfig`.
-- **Arrays:** Store multi-shift sequences read from binary key files.
-- **Pointers:** Pass configuration structures and memory buffers to functions efficiently by reference.
-- **File Handling:** Binary file operations (`fread`, `fwrite`, `fopen`, `fclose`) for key management and stream I/O (`fgetc`, `fputc`) for text transformation.
+- **Header Files:** The header file [`include/cipher.h`](include/cipher.h) holds the `Cfg` struct and function prototypes.
+- **Structure:** Configuration states (input path, key path, output path, shift buffer, mode) are encapsulated in the `Cfg` struct.
+- **Arrays & Memory Buffers:** Binary key sequences and string paths are stored in fixed-size buffers.
+- **Pointers:** Memory addresses are passed to functions for in-place character transformations and struct manipulation.
+- **File I/O:** Stream reading and writing via standard file pointers (`fopen`, `fgetc`, `fputc`, `fread`, `fwrite`, `fclose`).
+- **Modular arithmetic:** `count % 8` picks the shift and `% 26` warps letters around the alphabet.
 
 ### 6.2 Control Flow Diagram
 
 ```mermaid
 flowchart TD
     Start([Start]) --> Mode{Select Mode}
-    Mode -->|Interactive Menu| Menu[Launch ceaserCLI Menu]
-    Mode -->|CLI Arguments| ParseArgs[Parse CLI Arguments & Flags]
+    Mode -->|No Arguments| Menu["Launch Interactive Menu"]
+    Mode -->|With Arguments| ParseArgs["Parse Command-Line Arguments"]
     
-    ParseArgs -->|--help / -h| ShowHelp[Display Help Screen] --> Exit([Exit])
-    ParseArgs -->|create_keys [NAME]| GenKey[Generate 8-byte Shifts]
-    GenKey --> WriteKeys[Save Public&lt;Name&gt;.key & Private&lt;Name&gt;.key] --> Exit
+    ParseArgs -->|Help Flag| ShowHelp["Display Help Screen"] --> Exit([Exit])
+    ParseArgs -->|create_keys| GenKey["Generate 8-byte Shift Values"]
+    GenKey --> WriteKeys["Save Public and Private Keys"] --> Exit
     
-    ParseArgs -->|cipher &lt;encrypt/decrypt&gt;| LoadFiles[Open Input & Key File]
+    ParseArgs -->|ceaserCLI| LoadFiles["Open Input and Key File"]
     LoadFiles --> Validate{Valid Files?}
-    Validate -->|No| FileErr[Display Error Message] --> Exit
-    Validate -->|Yes| ReadKey[Read Key Shifts into Buffer]
+    Validate -->|No| FileErr["Display Error Message"] --> Exit
+    Validate -->|Yes| ReadKey["Load Shifts into Memory Buffer"]
     
     ReadKey --> OpType{Operation?}
-    OpType -->|encrypt| ApplyShift[Shift chars: +shift mod 26]
-    OpType -->|decrypt| ApplyInverse[Shift chars: +inverse mod 26]
+    OpType -->|encrypt| ApplyShift["Apply Forward Shift (+S mod 26)"]
+    OpType -->|decrypt| ApplyInverse["Apply Inverse Shift (+(26-S) mod 26)"]
     
-    ApplyShift --> WriteOut[Write &lt;name&gt;_encrypted.&lt;ext&gt;] --> Done([Done])
-    ApplyInverse --> WriteOutRestored[Write &lt;name&gt;_decrypted.&lt;ext&gt;] --> Done
+    ApplyShift --> WriteOut["Save to name_encrypted.ext"] --> Done([Done])
+    ApplyInverse --> WriteOutRestored["Save to name_decrypted.ext"] --> Done
 ```
 
 ---
 
 ## 7. Usage and Compilation
 
-The project does not use or require any Makefile. Compile the unified tool using the build script:
-
 ### 7.1 Compilation
+
+Compile the CeaserCLI programme using :-
 ```bash
-./build.sh
+bash ./build.sh
 ```
+If you are on MacOS/Linux
+
 Or directly with `gcc`:
 ```bash
 gcc src/cipher.c src/ceaserCLI.c -Iinclude -o ceaserCLI
@@ -151,19 +138,24 @@ gcc src/cipher.c src/ceaserCLI.c -Iinclude -o ceaserCLI
 
 ---
 
-### 7.2 Standalone Key Generator (`create_keys`)
-`create_keys.c` is completely standalone in the root directory and has no external dependencies:
+### 7.2 Key Generator (`create_keys`)
+`create_keys.c` is the key-pair generator for CeaserCLI
 ```bash
 gcc create_keys.c -o create_keys
+
+# Generate key pair with `Chetan` suffix
 ./create_keys Chetan
+
+# OR generate default key pair (Public.key & Private.key)
+./create_keys
 ```
 
 ---
 
-### 7.3 Unified Interface (`ceaserCLI`)
+### 7.3 CeaserCLI
 
 The application decides what to do based on arguments:
-- **No arguments (`./ceaserCLI`)**: Launches the interactive menu (Encrypt, Decrypt, Help, Exit).
+- **No arguments (`./ceaserCLI`)**: Launches the interactive menu. 
 - **Arguments (`./ceaserCLI <encrypt|decrypt> <file> <key>`)**: Runs the operation directly.
 - **Invalid arguments / `--help`**: Displays the help menu.
 
@@ -187,40 +179,42 @@ The application decides what to do based on arguments:
 
 ## 8. Screenshots
 
-### 8.1 Compilation
-![Compilation](screenshots/compile.png)
+### 8.1 Key Pair Generation Demo (`create_keys`)
+![Key Pair Generation Demo](screenshots/Create_Keys_Demo.png)
 
 ---
 
-### 8.2 Key Pair Generation
-![Key Pair Generation](screenshots/keys.png)
+### 8.2 Key File Structure & Byte Breakdown
+![Key File Breakdown](screenshots/Create_Keys_breakdown.png)
 
 ---
 
-### 8.3 File Encryption
-![File Encryption](screenshots/encrypt.png)
+### 8.3 Sharing the Public Key
+![Sharing Public Key](screenshots/Share_Public_Key.png)
 
 ---
 
-### 8.4 File Decryption & Restoration
-![File Decryption](screenshots/decrypt.png)
+### 8.4 File Encryption via CLI
+![File Encryption](screenshots/Encrypt_data.png)
+
+---
+
+### 8.5 File Decryption & Data Restoration
+![File Decryption](screenshots/Decrypt_CLI.png)
 
 ---
 
 ## 9. Limitations and Future Scope
 
-- **Security:** The Caesar cipher is an elementary classical substitution cipher and is not cryptographically secure against frequency analysis or brute-force cryptanalysis. It is intended strictly for educational purposes.
-- **File Types:** While non-alphabetic characters are preserved, binary file formats (e.g., images, compiled binaries) are not encrypted.
-- **Future Enhancements:**
-  - Support for modern symmetric and asymmetric algorithms (AES, RSA).
-  - Cross-platform graphical user interface (GUI).
-  - Support for full-byte stream encryption covering all byte values 0–255.
+- Ceaser cipher is weak and can be cracked by brute force alone, with only 8 repeating shifts frequency analysis can break it.
+- Use stronger keys, cryptographically strong algorithms like AES.
+- Support encrypting whole folders.
 
 ---
 
 ## 10. Conclusion
 
-The Text Encryption and Decryption Tool provides a compact practical application of the Caesar Cipher while demonstrating fundamental C programming concepts. By combining arrays, structures, pointers, functions, file handling, and modular code organization across `src/` and `include/`, the project bridges foundational programming concepts with a practical file security application.
+We built a working command-line tool in C that encrypts a file and file and restores it back using only the matching key. 
 
 ---
 
